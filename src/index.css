@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  font-family: "Material Symbols Outlined";
+  vertical-align: middle;
+  line-height: 1;
+}
+
+/* Slim WebKit custom scrollbar, per design system */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f8f9ff;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #bec9c2;
+  border-radius: 999px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #bec9c2 #f8f9ff;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Lexend", sans-serif;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent any accidental horizontal overflow on mobile */
+html, body, #root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Expandable customer card animation hooks (used via className toggling) */
+.customer-details {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 220ms ease;
+}
+.customer-card-expanded .customer-details {
+  grid-template-rows: 1fr;
+}
+.customer-details > div {
+  overflow: hidden;
+}
+.expand-icon {
+  transition: transform 200ms ease;
+}
+.customer-card-expanded .expand-icon {
+  transform: rotate(180deg);
+}

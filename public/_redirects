@@ -1,0 +1,6 @@
+# Without this, a customer opening a WhatsApp-shared /share/<token> link
+# directly (not by navigating within the app) would hit Netlify's static
+# file server, which has no /share/<token>.html and would 404 — instead of
+# serving index.html and letting React Router (App.jsx) handle the route
+# client-side. This applies to every client-side route, not just /share/*.
+/*    /index.html   200

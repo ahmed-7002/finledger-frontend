@@ -1,0 +1,15 @@
+# Security headers for the frontend static site itself.
+#
+# Helmet (backend/server.js) only sets headers on the Express API's JSON
+# responses — it has no effect on the React app's own HTML/JS/CSS, which is
+# served separately as static files. If deploying to Netlify, this file is
+# picked up automatically and applies these headers to every response.
+# (If deploying elsewhere — Vercel, S3+CloudFront, nginx — configure the
+# equivalent headers there instead; see vercel.json for the Vercel version.)
+
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(self), camera=(), microphone=()
+  X-XSS-Protection: 0
