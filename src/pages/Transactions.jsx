@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useMemo, useState } from "react";
 import { useCustomers } from "../hooks/useCustomers.js";
 import { useTenant, useSubscription } from "../hooks/useTenant.js";
 import { CUSTOMER_LIMIT } from "../lib/plan.js";
+import { matchesCustomerSearch } from "../lib/customerSearch.js";
 import CustomerCard from "../components/customers/CustomerCard.jsx";
 import LoadingSpinner from "../components/common/LoadingSpinner.jsx";
 
@@ -23,10 +24,7 @@ export default function Transactions() {
   const filtered = useMemo(() => {
     if (!customers) return [];
     if (!search.trim()) return customers;
-    const q = search.trim().toLowerCase();
-    return customers.filter(
-      (c) => c.name.toLowerCase().includes(q) || (c.phone || "").includes(q)
-    );
+    return customers.filter((c) => matchesCustomerSearch(c, search));
   }, [customers, search]);
 
   function handleAddCustomerClick() {
