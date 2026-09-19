@@ -13,11 +13,13 @@ const LocationOnboardingModal = lazy(() =>
 );
 const BuyStorageModal = lazy(() => import("../common/BuyStorageModal.jsx"));
 const SettingsModal = lazy(() => import("../common/SettingsModal.jsx"));
+const NotificationsModal = lazy(() => import("../common/NotificationsModal.jsx"));
 
 export default function DashboardLayout({ children }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showRenewModal, setShowRenewModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const isOnline = useOnlineStatus();
   const { data: tenant, isLoading } = useTenant();
 
@@ -31,6 +33,7 @@ export default function DashboardLayout({ children }) {
         <TopBar
           onMenuClick={() => setDrawerOpen(true)}
           onSettingsClick={() => setShowSettingsModal(true)}
+          onNotificationsClick={() => setShowNotificationsModal(true)}
           isOnline={isOnline}
         />
 
@@ -58,6 +61,9 @@ export default function DashboardLayout({ children }) {
         )}
         {showSettingsModal && (
           <SettingsModal tenant={tenant} onClose={() => setShowSettingsModal(false)} />
+        )}
+        {showNotificationsModal && (
+          <NotificationsModal tenant={tenant} onClose={() => setShowNotificationsModal(false)} />
         )}
       </Suspense>
     </div>

@@ -41,7 +41,7 @@ export default function Items() {
       </div>
 
       <Link to="/new-sale" className="text-xs text-primary/60 underline underline-offset-2">
-        Go to New Sale ->
+        Go to New Sale →
       </Link>
 
       <div className="mt-4 space-y-2">

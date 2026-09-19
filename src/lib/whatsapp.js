@@ -42,3 +42,33 @@ export function buildShareRecordLink(customerPhone, customerName, shareUrl, shop
   const phoneDigits = (customerPhone || "").replace(/[^\d]/g, "");
   return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
 }
+
+/**
+ * buildPaymentReviewLink
+ * ----------------------------------------------------------------------
+ * One-tap "Notify Customer" message after the owner approves or rejects a
+ * submitted payment receipt (see components/notifications/NotificationsModal.jsx).
+ * This is deliberately NOT automatic - there's no paid WhatsApp Business
+ * API wired in here, so nothing sends until the owner taps Send themselves,
+ * same trade-off as every other WhatsApp feature in this app (see README).
+ *
+ * Includes the customer's own Share Record link either way (approved or
+ * rejected) so they can tap straight through to see their updated balance,
+ * or - if rejected - get right back to the same page to resubmit, without
+ * having to dig through old chat history for the link.
+ * ----------------------------------------------------------------------
+ */
+export function buildPaymentReviewLink(customerPhone, customerName, outcome, details) {
+  const { amount, shareUrl, rejectionReason } = details;
+
+  const message =
+    outcome === "approved"
+      ? `Hi ${customerName}, your payment of ${amount} has been approved. ` +
+        `See your updated balance here: ${shareUrl}`
+      : `Hi ${customerName}, your submitted receipt could not be verified.` +
+        (rejectionReason ? ` Reason: ${rejectionReason}.` : "") +
+        ` Please resubmit here: ${shareUrl}`;
+
+  const phoneDigits = (customerPhone || "").replace(/[^\d]/g, "");
+  return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
+}

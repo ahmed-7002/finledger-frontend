@@ -13,7 +13,23 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
  */
 export async function publicApiFetch(path) {
   const res = await fetch(`${API_BASE}${path}`);
+  return handlePublicResponse(res);
+}
 
+/**
+ * publicApiFetchForm
+ * Same no-auth guarantee as publicApiFetch, but for multipart form
+ * submissions - specifically the "I've paid, here's my receipt" upload on
+ * the Share Record page. Takes a FormData object directly; never sets a
+ * Content-Type header manually, since the browser needs to set its own
+ * multipart boundary string automatically.
+ */
+export async function publicApiFetchForm(path, formData) {
+  const res = await fetch(`${API_BASE}${path}`, { method: "POST", body: formData });
+  return handlePublicResponse(res);
+}
+
+async function handlePublicResponse(res) {
   if (!res.ok) {
     let payload = {};
     try {
@@ -29,8 +45,10 @@ export async function publicApiFetch(path) {
 
     const err = new Error(message);
     err.status = res.status;
+    err.payload = payload;
     throw err;
   }
 
+  if (res.status === 204) return null;
   return res.json();
 }

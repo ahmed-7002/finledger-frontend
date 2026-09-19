@@ -1,6 +1,10 @@
 import React from "react";
+import { usePaymentSubmissions } from "../../hooks/usePaymentSubmissions.js";
 
-export default function TopBar({ onMenuClick, onSettingsClick, isOnline }) {
+export default function TopBar({ onMenuClick, onSettingsClick, onNotificationsClick, isOnline }) {
+  const { data: submissions } = usePaymentSubmissions();
+  const pendingCount = (submissions || []).filter((s) => s.status === "pending").length;
+
   return (
     <header className="sticky top-0 z-30 bg-surface-container-lowest border-b border-primary-fixed/30 px-4 sm:px-6 py-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -25,6 +29,19 @@ export default function TopBar({ onMenuClick, onSettingsClick, isOnline }) {
           />
           {isOnline ? "Online" : "Offline"}
         </span>
+
+        <button
+          onClick={onNotificationsClick}
+          className="relative p-2 rounded-full hover:bg-surface-container-low text-primary/70"
+          aria-label="Notifications"
+        >
+          <span className="material-symbols-outlined text-[20px]">notifications</span>
+          {pendingCount > 0 && (
+            <span className="absolute top-1 right-1 h-4 min-w-[16px] px-1 flex items-center justify-center rounded-full bg-error text-on-primary text-[10px] font-semibold leading-none">
+              {pendingCount > 9 ? "9+" : pendingCount}
+            </span>
+          )}
+        </button>
 
         <button
           onClick={onSettingsClick}

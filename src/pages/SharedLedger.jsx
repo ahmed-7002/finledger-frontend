@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { publicApiFetch } from "../lib/publicApi.js";
+import { publicApiFetch, publicApiFetchForm } from "../lib/publicApi.js";
 import { formatCurrency } from "../lib/currency.js";
 import LoadingSpinner from "../components/common/LoadingSpinner.jsx";
 
@@ -16,32 +16,160 @@ function StatusBadge({ status }) {
   );
 }
 
+/**
+ * PaymentSubmissionSection
+ * ----------------------------------------------------------------------
+ * The "I've Paid" flow, driven entirely by `latestSubmission.status`:
+ * - none / approved -> plain "I've Paid" button
+ * - pending -> "waiting for review", button hidden (blocks a second
+ *   submission from piling up while the first is still being checked -
+ *   also enforced server-side by a database constraint, this is just the
+ *   matching UI state)
+ * - rejected -> shows the reason (if the shop owner gave one) and the SAME
+ *   button, relabeled "Resubmit Receipt" - deliberately reusing one spot
+ *   rather than a separate button, so there's only ever one place to look
+ * ----------------------------------------------------------------------
+ */
+function PaymentSubmissionSection({ token, latestSubmission, onSubmitted }) {
+  const [showForm, setShowForm] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [file, setFile] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  const status = latestSubmission?.status;
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(null);
+
+    const numericAmount = Number(amount);
+    if (!numericAmount || numericAmount <= 0) {
+      setError("Enter a valid amount greater than zero");
+      return;
+    }
+    if (!file) {
+      setError("Attach a receipt screenshot");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const form = new FormData();
+      form.append("amount", numericAmount);
+      form.append("receipt", file);
+      await publicApiFetchForm(`/public/ledger/${token}/payment-submission`, form);
+      setShowForm(false);
+      setAmount("");
+      setFile(null);
+      onSubmitted();
+    } catch (err) {
+      setError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (status === "pending") {
+    return (
+      <div className="bg-surface-container-low rounded-xl p-4 flex items-center gap-2 mb-6">
+        <span className="material-symbols-outlined text-primary text-lg">hourglass_top</span>
+        <p className="text-sm text-primary">
+          Payment submitted - waiting for the shop to review it.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-6">
+      {status === "rejected" && (
+        <div className="bg-error-container rounded-xl p-4 mb-3">
+          <p className="text-sm text-error font-medium mb-0.5">Your last submission wasn't approved</p>
+          {latestSubmission.rejectionReason && (
+            <p className="text-xs text-error/80">Reason: {latestSubmission.rejectionReason}</p>
+          )}
+        </div>
+      )}
+
+      {!showForm ? (
+        <button
+          onClick={() => setShowForm(true)}
+          className="w-full flex items-center justify-center gap-1.5 bg-primary text-on-primary rounded-xl py-3 text-sm font-medium"
+        >
+          <span className="material-symbols-outlined text-base">upload</span>
+          {status === "rejected" ? "Resubmit Receipt" : "I've Paid"}
+        </button>
+      ) : (
+        <form onSubmit={handleSubmit} className="bg-surface-container-lowest border border-primary-fixed/30 rounded-2xl p-4 space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-primary/70 mb-1">Amount you paid</label>
+            <input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              inputMode="decimal"
+              className="w-full border border-primary-fixed/50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              placeholder="0.00"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-primary/70 mb-1">Receipt screenshot</label>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="w-full text-sm text-primary/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-primary-fixed file:text-primary file:text-xs file:font-medium"
+            />
+          </div>
+          {error && <p className="text-xs text-error">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="flex-1 border border-primary-fixed/50 text-primary rounded-xl py-2.5 text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 bg-primary text-on-primary rounded-xl py-2.5 text-sm font-medium disabled:opacity-60"
+            >
+              {submitting ? "Submitting..." : "Submit"}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export default function SharedLedger() {
   const { token } = useParams();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadData = useCallback(() => {
     setLoading(true);
     setError(null);
 
-    publicApiFetch(`/public/ledger/${token}`)
-      .then((result) => {
-        if (!cancelled) setData(result);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    return publicApiFetch(`/public/ledger/${token}`)
+      .then((result) => setData(result))
+      .catch((err) => setError(err))
+      .finally(() => setLoading(false));
+  }, [token]);
 
+  useEffect(() => {
+    let cancelled = false;
+    loadData().then(() => {
+      if (cancelled) return;
+    });
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [loadData]);
 
   if (loading) {
     return <LoadingSpinner fullScreen label="Loading your record..." />;
@@ -104,14 +232,26 @@ export default function SharedLedger() {
 
         {/* Pay directly via bank details, mirroring the WhatsApp reminder message */}
         {Number(data.pendingAmount) > 0 && (data.bankName || data.accountNumber) && (
-          <div className="bg-surface-container-lowest border border-primary-fixed/30 rounded-2xl p-4 sm:p-5 mb-6">
+          <div className="bg-surface-container-lowest border border-primary-fixed/30 rounded-2xl p-4 sm:p-5 mb-4">
             <p className="text-xs font-medium text-primary/70 mb-2 flex items-center gap-1.5">
               <span className="material-symbols-outlined text-base">account_balance</span>
               Pay directly via bank transfer
             </p>
             <p className="text-sm text-primary">{data.bankName || " - "}</p>
+            {data.accountHolderName && (
+              <p className="text-sm text-primary">{data.accountHolderName}</p>
+            )}
             <p className="text-sm text-primary font-medium">{data.accountNumber || " - "}</p>
           </div>
+        )}
+
+        {/* Submit / track a bank-transfer receipt for the shop owner to review */}
+        {Number(data.pendingAmount) > 0 && (
+          <PaymentSubmissionSection
+            token={token}
+            latestSubmission={data.latestSubmission}
+            onSubmitted={loadData}
+          />
         )}
 
         {/* Transaction timeline */}
