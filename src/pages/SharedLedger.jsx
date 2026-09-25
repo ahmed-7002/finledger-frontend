@@ -16,20 +16,6 @@ function StatusBadge({ status }) {
   );
 }
 
-/**
- * PaymentSubmissionSection
- * ----------------------------------------------------------------------
- * The "I've Paid" flow, driven entirely by `latestSubmission.status`:
- * - none / approved -> plain "I've Paid" button
- * - pending -> "waiting for review", button hidden (blocks a second
- *   submission from piling up while the first is still being checked -
- *   also enforced server-side by a database constraint, this is just the
- *   matching UI state)
- * - rejected -> shows the reason (if the shop owner gave one) and the SAME
- *   button, relabeled "Resubmit Receipt" - deliberately reusing one spot
- *   rather than a separate button, so there's only ever one place to look
- * ----------------------------------------------------------------------
- */
 function PaymentSubmissionSection({ token, latestSubmission, onSubmitted }) {
   const [showForm, setShowForm] = useState(false);
   const [amount, setAmount] = useState("");
@@ -117,7 +103,6 @@ function PaymentSubmissionSection({ token, latestSubmission, onSubmitted }) {
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
               className="w-full text-sm text-primary/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-primary-fixed file:text-primary file:text-xs file:font-medium"
             />
@@ -214,7 +199,6 @@ export default function SharedLedger() {
       </header>
 
       <main className="max-w-2xl mx-auto p-4 sm:p-6">
-        {/* Balance summary */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="bg-error-container rounded-2xl p-4 sm:p-5">
             <p className="text-xs text-error/80 mb-1">You owe</p>
@@ -230,7 +214,6 @@ export default function SharedLedger() {
           </div>
         </div>
 
-        {/* Pay directly via bank details, mirroring the WhatsApp reminder message */}
         {Number(data.pendingAmount) > 0 && (data.bankName || data.accountNumber) && (
           <div className="bg-surface-container-lowest border border-primary-fixed/30 rounded-2xl p-4 sm:p-5 mb-4">
             <p className="text-xs font-medium text-primary/70 mb-2 flex items-center gap-1.5">
@@ -245,7 +228,6 @@ export default function SharedLedger() {
           </div>
         )}
 
-        {/* Submit / track a bank-transfer receipt for the shop owner to review */}
         {Number(data.pendingAmount) > 0 && (
           <PaymentSubmissionSection
             token={token}
@@ -254,7 +236,6 @@ export default function SharedLedger() {
           />
         )}
 
-        {/* Transaction timeline */}
         <h2 className="font-headline text-base font-semibold text-primary mb-3">
           Transaction History
         </h2>

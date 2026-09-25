@@ -122,7 +122,6 @@ export default function TransactionModal({ customer, onClose, onSubscriptionRequ
                 <input
                   type="file"
                   accept="image/*"
-                  capture="environment"
                   onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
                   className="w-full text-sm text-primary/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-primary-fixed file:text-primary file:text-xs file:font-medium"
                 />
