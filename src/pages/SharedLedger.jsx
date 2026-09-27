@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { publicApiFetch, publicApiFetchForm } from "../lib/publicApi.js";
 import { formatCurrency } from "../lib/currency.js";
@@ -23,7 +23,17 @@ function PaymentSubmissionSection({ token, latestSubmission, onSubmitted }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  const cameraInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
+
   const status = latestSubmission?.status;
+
+  function handleFilePicked(e) {
+    setFile(e.target.files?.[0] || null);
+    // reset both inputs so picking the same file again still fires onChange
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -100,12 +110,62 @@ function PaymentSubmissionSection({ token, latestSubmission, onSubmitted }) {
           </div>
           <div>
             <label className="block text-xs font-medium text-primary/70 mb-1">Receipt screenshot</label>
+
+            {/* Hidden inputs: one forces the camera, the other opens the
+                photo library / file browser. Triggering them from our own
+                buttons guarantees both options are reachable, since some
+                mobile webviews only show the camera option when `capture`
+                is explicitly set on the input being opened. */}
             <input
+              ref={cameraInputRef}
               type="file"
               accept="image/*"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              className="w-full text-sm text-primary/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-primary-fixed file:text-primary file:text-xs file:font-medium"
+              capture="environment"
+              onChange={handleFilePicked}
+              className="hidden"
             />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFilePicked}
+              className="hidden"
+            />
+
+            {!file ? (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="flex-1 flex items-center justify-center gap-1.5 border border-primary-fixed/50 rounded-xl py-2.5 text-xs font-medium text-primary hover:bg-surface-container-low transition"
+                >
+                  <span className="material-symbols-outlined text-base">photo_camera</span>
+                  Take Photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="flex-1 flex items-center justify-center gap-1.5 border border-primary-fixed/50 rounded-xl py-2.5 text-xs font-medium text-primary hover:bg-surface-container-low transition"
+                >
+                  <span className="material-symbols-outlined text-base">image</span>
+                  Choose Photo
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between bg-surface-container-low rounded-xl px-4 py-2.5">
+                <div className="flex items-center gap-2 text-sm text-primary/70 truncate">
+                  <span className="material-symbols-outlined text-lg">description</span>
+                  <span className="truncate">{file.name}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFile(null)}
+                  className="p-1 rounded-full hover:bg-surface-container-lowest shrink-0"
+                >
+                  <span className="material-symbols-outlined text-lg">close</span>
+                </button>
+              </div>
+            )}
           </div>
           {error && <p className="text-xs text-error">{error}</p>}
           <div className="flex gap-2">
