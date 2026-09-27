@@ -19,6 +19,13 @@ export async function apiFetch(path, { method = "GET", body, getToken, isFormDat
     method,
     headers,
     body: isFormData ? body : body ? JSON.stringify(body) : undefined,
+    // Force every request straight to the network. Without this, some
+    // hosting/CDN layers (Vercel's edge network included) can serve a
+    // cached GET response even after React Query invalidates and
+    // refetches - the request never actually reaches the backend, so
+    // newly-added data (like a just-created customer) doesn't show up
+    // until a hard refresh bypasses the cache entirely.
+    cache: "no-store",
   });
 
   if (!res.ok) {
