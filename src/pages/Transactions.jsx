@@ -15,17 +15,34 @@ export default function Transactions() {
   const { hasActiveSubscription, isExpired, subscriptionPeriodEnd } = useSubscription();
 
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // "all" | "pending" | "cleared"
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [paywallReason, setPaywallReason] = useState(null); // null | payload from a 402/409 response
 
   const customerCount = customers?.length ?? 0;
   const limitReached = customerCount >= CUSTOMER_LIMIT;
 
+  // "Pending" vs "Cleared" mirrors CustomerCard.jsx's StatusBadge logic:
+  // Number(customer.pending_amount) > 0 -> pending, otherwise cleared.
+  const pendingCount = useMemo(
+    () => (customers ?? []).filter((c) => Number(c.pending_amount) > 0).length,
+    [customers]
+  );
+  const clearedCount = customerCount - pendingCount;
+
   const filtered = useMemo(() => {
     if (!customers) return [];
-    if (!search.trim()) return customers;
-    return customers.filter((c) => matchesCustomerSearch(c, search));
-  }, [customers, search]);
+    let result = customers;
+    if (statusFilter === "pending") {
+      result = result.filter((c) => Number(c.pending_amount) > 0);
+    } else if (statusFilter === "cleared") {
+      result = result.filter((c) => Number(c.pending_amount) === 0);
+    }
+    if (search.trim()) {
+      result = result.filter((c) => matchesCustomerSearch(c, search));
+    }
+    return result;
+  }, [customers, search, statusFilter]);
 
   function handleAddCustomerClick() {
     if (!hasActiveSubscription) {
@@ -55,7 +72,7 @@ export default function Transactions() {
         </button>
       </div>
 
-      <div className="relative mb-5">
+      <div className="relative mb-3">
         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-primary/40 text-lg">
           search
         </span>
@@ -65,6 +82,42 @@ export default function Transactions() {
           placeholder="Search by name or phone"
           className="w-full pl-10 pr-4 py-3 rounded-xl border border-primary-fixed/50 bg-surface-container-lowest text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
         />
+      </div>
+
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-3 pt-0.5 mb-2">
+        <button
+          type="button"
+          onClick={() => setStatusFilter("all")}
+          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+            statusFilter === "all"
+              ? "bg-primary text-on-primary"
+              : "bg-surface-container-lowest text-primary/70 border border-primary-fixed/50 hover:bg-surface-container-low"
+          }`}
+        >
+          All ({customerCount})
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter("pending")}
+          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+            statusFilter === "pending"
+              ? "bg-primary text-on-primary"
+              : "bg-surface-container-lowest text-primary/70 border border-primary-fixed/50 hover:bg-surface-container-low"
+          }`}
+        >
+          Pending ({pendingCount})
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter("cleared")}
+          className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition ${
+            statusFilter === "cleared"
+              ? "bg-primary text-on-primary"
+              : "bg-surface-container-lowest text-primary/70 border border-primary-fixed/50 hover:bg-surface-container-low"
+          }`}
+        >
+          Cleared ({clearedCount})
+        </button>
       </div>
 
       {filtered.length === 0 ? (

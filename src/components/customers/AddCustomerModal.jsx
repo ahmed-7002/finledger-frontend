@@ -7,6 +7,7 @@ export default function AddCustomerModal({ tenant, onClose, onSubscriptionRequir
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [nationalId, setNationalId] = useState("");
+  const [initialDebtAmount, setInitialDebtAmount] = useState("");
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [verifyLinkOpened, setVerifyLinkOpened] = useState(false);
   const [errors, setErrors] = useState({});
@@ -38,12 +39,25 @@ export default function AddCustomerModal({ tenant, onClose, onSubscriptionRequir
     const { e164, error: phoneError } = validatePhone(phone, countryCode);
     const idError = validateNationalId(nationalId, countryCode);
 
-    const nextErrors = { name: nameError, phone: phoneError, nationalId: idError };
+    const trimmedDebt = initialDebtAmount.trim();
+    const numericDebt = trimmedDebt ? Number(trimmedDebt) : 0;
+    const debtError =
+      trimmedDebt && (!Number.isFinite(numericDebt) || numericDebt < 0)
+        ? "Enter a valid amount (0 or more)"
+        : null;
+
+    const nextErrors = { name: nameError, phone: phoneError, nationalId: idError, initialDebtAmount: debtError };
     setErrors(nextErrors);
-    if (nameError || phoneError || idError) return;
+    if (nameError || phoneError || idError || debtError) return;
 
     addCustomer.mutate(
-      { name: name.trim(), phone: e164, nationalId: nationalId || null, phoneVerified },
+      {
+        name: name.trim(),
+        phone: e164,
+        nationalId: nationalId || null,
+        phoneVerified,
+        initialDebtAmount: numericDebt || undefined,
+      },
       {
         onSuccess: onClose,
         onError: (err) => {
@@ -131,6 +145,26 @@ export default function AddCustomerModal({ tenant, onClose, onSubscriptionRequir
               placeholder={countryCode === "PK" ? "XXXXX-XXXXXXX-X" : "Optional"}
             />
             {errors.nationalId && <p className="text-xs text-error mt-1">{errors.nationalId}</p>}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-primary/70 mb-1">
+              Opening balance (optional)
+            </label>
+            <input
+              value={initialDebtAmount}
+              onChange={(e) => setInitialDebtAmount(e.target.value)}
+              inputMode="decimal"
+              className="w-full border border-primary-fixed/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              placeholder="0.00"
+            />
+            {errors.initialDebtAmount && (
+              <p className="text-xs text-error mt-1">{errors.initialDebtAmount}</p>
+            )}
+            <p className="text-[11px] text-primary/40 mt-1">
+              If this customer already owes you something, enter it here instead of recording
+              it separately afterward.
+            </p>
           </div>
 
           <button

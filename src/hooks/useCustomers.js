@@ -35,6 +35,11 @@ export function useCustomerTransactions(customerId) {
  * being attempted over the network, and gets replayed automatically once
  * connectivity returns (see lib/offlineQueue.js).
  *
+ * Supports an optional opening balance (payload.initialDebtAmount) set
+ * right at creation time - the backend creates the customer and the
+ * matching 'add' transaction atomically in one call, so this hook doesn't
+ * need any extra round trip or offline-queue complexity to support it.
+ *
  * Shows a confirmation toast on success - worded differently for an
  * offline-queued save ("will sync") vs. a real server confirmation, since
  * those are genuinely different guarantees and the person deserves to know
@@ -50,10 +55,17 @@ export function useAddCustomer() {
     mutationFn: async (payload) => {
       const clientUuid = crypto.randomUUID();
       const body = { ...payload, clientUuid };
+      const openingBalance = Number(payload.initialDebtAmount) || 0;
 
       if (!navigator.onLine) {
         await enqueueMutation({ path: "/customers", method: "POST", body });
-        return { ...body, id: clientUuid, pending_amount: 0, cleared_amount: 0, _offline: true };
+        return {
+          ...body,
+          id: clientUuid,
+          pending_amount: openingBalance,
+          cleared_amount: 0,
+          _offline: true,
+        };
       }
 
       try {
@@ -63,7 +75,13 @@ export function useAddCustomer() {
         // online (flaky connection) - fall back to the offline queue too.
         if (err.status === undefined) {
           await enqueueMutation({ path: "/customers", method: "POST", body });
-          return { ...body, id: clientUuid, pending_amount: 0, cleared_amount: 0, _offline: true };
+          return {
+            ...body,
+            id: clientUuid,
+            pending_amount: openingBalance,
+            cleared_amount: 0,
+            _offline: true,
+          };
         }
         throw err;
       }
@@ -78,7 +96,7 @@ export function useAddCustomer() {
         phone: payload.phone,
         phone_verified: Boolean(payload.phoneVerified),
         national_id: payload.nationalId,
-        pending_amount: 0,
+        pending_amount: Number(payload.initialDebtAmount) || 0,
         cleared_amount: 0,
         updated_at: new Date().toISOString(),
         _optimistic: true,
@@ -88,8 +106,11 @@ export function useAddCustomer() {
       return { previous };
     },
     onSuccess: (data) => {
+      const hasOpeningBalance = Number(data.pending_amount) > 0;
       if (data._offline) {
         addToast(`${data.name} saved offline - will sync when you're back online`, "info");
+      } else if (hasOpeningBalance) {
+        addToast(`${data.name} added with an opening balance`, "success");
       } else {
         addToast(`${data.name} added to your ledger`, "success");
       }
