@@ -38,7 +38,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6 gap-3">
+      <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-headline text-2xl font-semibold text-primary">
             {tenant?.shop_name || "Your Dashboard"}
@@ -47,11 +47,10 @@ export default function Dashboard() {
         </div>
         <button
           onClick={handleAddCustomerClick}
-          className="flex items-center gap-1.5 bg-primary text-on-primary text-sm font-medium px-4 py-2.5 rounded-xl shrink-0 active:scale-[0.97] transition"
+          className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-primary text-on-primary text-sm font-medium px-4 py-2.5 rounded-xl shrink-0 active:scale-[0.97] transition"
         >
           <span className="material-symbols-outlined text-base">person_add</span>
-          <span className="hidden sm:inline">Add New Customer</span>
-          <span className="sm:hidden">Add</span>
+          <span>Add New Customer</span>
         </button>
       </div>
 

@@ -33,25 +33,32 @@ export default function MetricsGrid({ customers, tenant }) {
   const totalBalance = totals.pending + totals.cleared;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div className="flex flex-col gap-3 mb-6 sm:grid sm:grid-cols-3 sm:gap-4">
+      {/* Total Balance: full-width on mobile, first column on sm+ */}
       <MetricCard
         icon="account_balance_wallet"
         label="Total Balance"
         value={formatCurrency(totalBalance, localeOpts)}
         tone="primary"
       />
-      <MetricCard
-        icon="hourglass_top"
-        label="Pending Amount"
-        value={formatCurrency(totals.pending, localeOpts)}
-        tone="surface"
-      />
-      <MetricCard
-        icon="task_alt"
-        label="Cleared Amount"
-        value={formatCurrency(totals.cleared, localeOpts)}
-        tone="accent"
-      />
+
+      {/* Pending + Cleared: side-by-side 2-col row on mobile; on sm+,
+          sm:contents un-wraps this div so both cards become direct grid
+          children again, restoring the original 3-column single row. */}
+      <div className="grid grid-cols-2 gap-3 sm:contents">
+        <MetricCard
+          icon="hourglass_top"
+          label="Pending Amount"
+          value={formatCurrency(totals.pending, localeOpts)}
+          tone="surface"
+        />
+        <MetricCard
+          icon="task_alt"
+          label="Cleared Amount"
+          value={formatCurrency(totals.cleared, localeOpts)}
+          tone="accent"
+        />
+      </div>
     </div>
   );
 }
